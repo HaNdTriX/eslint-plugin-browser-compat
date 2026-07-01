@@ -2,22 +2,35 @@
 
 [![npm version](https://img.shields.io/npm/v/eslint-plugin-browser-compat)](https://www.npmjs.com/package/eslint-plugin-browser-compat)
 [![CI](https://github.com/handtrix/eslint-plugin-browser-compat/actions/workflows/ci.yml/badge.svg)](https://github.com/handtrix/eslint-plugin-browser-compat/actions/workflows/ci.yml)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
-Lint browser compatibility of your JavaScript and TypeScript using @mdn/browser-compat-data.
+An ESLint plugin that reports browser API usage incompatible with your configured [browserslist](https://browsersl.ist/) targets, powered by [@mdn/browser-compat-data](https://github.com/mdn/browser-compat-data).
 
-The goal is a drop-in replacement for eslint-plugin-compat, with these differences:
+Designed as a drop-in replacement for [eslint-plugin-compat](https://github.com/amilajack/eslint-plugin-compat) with the following differences:
 
-- Uses @mdn/browser-compat-data as the compatibility source.
-- Flat config is the supported config style.
-- ES API linting defaults to enabled.
+|                           | eslint-plugin-browser-compat | eslint-plugin-compat |
+| ------------------------- | ---------------------------- | -------------------- |
+| Compatibility data source | `@mdn/browser-compat-data`   | `caniuse` + `MDN`    |
+| Config style              | Flat config only             | Legacy + flat config |
+| ES built-in linting       | Enabled by default           | Opt-in               |
 
-## Install
+## Requirements
+
+- ESLint ≥ 10
+- Node.js ≥ 18
+
+## Installation
 
 ```bash
+# pnpm
 pnpm add -D eslint eslint-plugin-browser-compat @mdn/browser-compat-data
-```
 
-Minimum supported ESLint version: 10.
+# npm
+npm install -D eslint eslint-plugin-browser-compat @mdn/browser-compat-data
+
+# yarn
+yarn add -D eslint eslint-plugin-browser-compat @mdn/browser-compat-data
+```
 
 ## Quick start
 
@@ -28,17 +41,7 @@ import compat from "eslint-plugin-browser-compat";
 export default [compat.configs.recommended];
 ```
 
-## Rule
-
-- compat/compat: reports unsupported APIs for configured browser targets.
-
-See detailed rule docs in [docs/rules/compat.md](docs/rules/compat.md).
-
-## Configure target browsers
-
-Targets are resolved with browserslist.
-
-Example package.json:
+With a `browserslist` field in your `package.json` (or a `.browserslistrc` file), the plugin will automatically pick up your targets:
 
 ```json
 {
@@ -46,15 +49,27 @@ Example package.json:
 }
 ```
 
-You can also set explicit targets in ESLint settings:
+## Rules
+
+| Rule                                    | Description                                                 | Recommended |
+| --------------------------------------- | ----------------------------------------------------------- | ----------- |
+| [`compat/compat`](docs/rules/compat.md) | Reports API usage unsupported by configured browser targets | ✅          |
+
+## Configure target browsers
+
+Targets are resolved via browserslist. The plugin reads from the standard browserslist config locations (`package.json`, `.browserslistrc`, etc.) automatically.
+
+You can also set explicit targets in your ESLint config using the `browsers` or `targets` setting:
 
 ```js
+// eslint.config.mjs
+import compat from "eslint-plugin-browser-compat";
+
 export default [
   compat.configs.recommended,
   {
     settings: {
-      browsers: ["ie 11"],
-      // or: targets: ["ie 11"]
+      browsers: ["chrome >= 100", "firefox >= 100", "safari >= 15"],
     },
   },
 ];
@@ -62,68 +77,64 @@ export default [
 
 ## Settings
 
-- browsers: string[]
-- targets: string[]
-- polyfills: string[]
-- lintAllEsApis: boolean
-- ignoreConditionalChecks: boolean
-- browserslistOpts: { env?: string; path?: string }
+All settings are optional and passed under the `settings` key in your ESLint config.
 
-Details:
+| Setting                   | Type                              | Default | Description                                                                                     |
+| ------------------------- | --------------------------------- | ------- | ----------------------------------------------------------------------------------------------- |
+| `browsers`                | `string[]`                        | —       | Explicit browserslist queries. Alias for `targets`.                                             |
+| `targets`                 | `string[]`                        | —       | Explicit browserslist queries. Takes precedence over `browsers` when both are set.              |
+| `polyfills`               | `string[]`                        | `[]`    | APIs to suppress reports for — use when your runtime includes a polyfill.                       |
+| `lintAllEsApis`           | `boolean`                         | `true`  | When `true`, lint ES built-ins such as `Array.from` or `Promise.allSettled`.                    |
+| `ignoreConditionalChecks` | `boolean`                         | `false` | When `false`, APIs guarded by feature detection (e.g. `if (fetch) { ... }`) are still reported. |
+| `browserslistOpts`        | `{ env?: string; path?: string }` | —       | Options passed directly to the browserslist resolver.                                           |
 
-- browsers: explicit browserslist queries. Alias for targets.
-- targets: explicit browserslist queries. If both browsers and targets are present, targets wins.
-- polyfills: suppress reports for known polyfilled APIs.
-- lintAllEsApis: when true (default), lint ES built-ins (for example Array.from).
-- ignoreConditionalChecks: when false (default), feature detection conditions such as if (fetch) are ignored.
-- browserslistOpts: passed directly to browserslist resolution.
+### Polyfills
 
-Polyfill examples:
+Use the `polyfills` setting to suppress reports for APIs you have polyfilled at runtime:
 
 ```js
+// eslint.config.mjs
+import compat from "eslint-plugin-browser-compat";
+
 export default [
   compat.configs.recommended,
   {
     settings: {
       polyfills: [
-        // Ignore an API and all of its members
-        "Promise",
-        // Ignore a specific member
-        "WebAssembly.compile",
-        // Ignore a global function
-        "fetch",
-        // Ignore an instance method
-        "Array.prototype.flat",
+        "Promise", // suppress an entire API and all its members
+        "WebAssembly.compile", // suppress a specific static method
+        "fetch", // suppress a global function
+        "Array.prototype.flat", // suppress an instance method
       ],
     },
   },
 ];
 ```
 
-## Troubleshooting false positives
+## Troubleshooting
 
-If you hit a false positive, start with these checks:
+### False positives
 
-1. Ensure the identifier is actually a browser API and not a local/imported binding.
-2. Add a targeted polyfill entry in settings.polyfills if your runtime includes it.
-3. Confirm your browserslist target set is what you expect.
-4. Update @mdn/browser-compat-data to pick up latest compatibility changes.
+1. **Local or imported binding** — The identifier may shadow a browser global. Imported and locally-declared bindings are not treated as browser APIs.
+2. **Polyfilled API** — Add the API to `settings.polyfills`.
+3. **Unexpected target set** — Run `npx browserslist` in your project to confirm which browsers are resolved.
+4. **Outdated compatibility data** — Update `@mdn/browser-compat-data` to get the latest browser support entries.
 
-Common scenarios that are already handled:
+### Already-handled scenarios
 
-- Imported constructors (for example new Navigation() from a package) are not treated as browser globals.
-- Type-only imports and type references are ignored.
-- Local object members (for example rect.bottom from getBoundingClientRect()) are ignored.
+- Constructors imported from npm packages (e.g. `new Navigation()`) are not treated as browser globals.
+- Type-only imports and TypeScript type references are ignored.
+- Local object members (e.g. `rect.bottom` from `getBoundingClientRect()`) are not checked.
 
 ## Known limitations
 
-- Dynamic property access with computed keys (for example obj[prop]) is not resolved to compatibility keys.
+- Computed property access (e.g. `obj[dynamicKey]`) cannot be resolved to a compatibility key and is therefore not checked.
 - Some API chains may require key normalization heuristics and can still miss edge cases.
 - Unknown features are treated as not-reportable instead of errors.
 
 ## Keep BCD updated
 
-@mdn/browser-compat-data is a peer dependency, so users can update it independently:
+[@mdn/browser-compat-data](https://github.com/mdn/browser-compat-data) is a peer dependency, so users can update it independently:
 
 ```bash
 pnpm up @mdn/browser-compat-data
