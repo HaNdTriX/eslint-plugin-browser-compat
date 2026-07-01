@@ -20,6 +20,13 @@
   "files": [
     "dist"
   ],
+  "devEngines": {
+    "packageManager": {
+      "name": "pnpm",
+      "version": ">=11.0.0",
+      "onFail": "download"
+    }
+  },
   "scripts": {
     "build": "tsdown",
     "dev": "tsdown --watch",
