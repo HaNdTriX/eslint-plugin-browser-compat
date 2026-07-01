@@ -5,6 +5,18 @@
   "description": "An ESLint plugin for checking browser compatibility.",
   "author": "Henrik Wenz <handtrix@mail.com>",
   "license": "MIT",
+  "keywords": [
+    "eslint",
+    "eslint-plugin",
+    "browser-compat",
+    "browserslist",
+    "browser-compat-data",
+    "mdn",
+    "compatibility",
+    "polyfill",
+    "ponyfill",
+    "lint"
+  ],
   "homepage": "https://github.com/handtrix/eslint-plugin-browser-compat#readme",
   "repository": {
     "type": "git",
