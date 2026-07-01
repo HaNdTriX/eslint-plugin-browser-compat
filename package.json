@@ -56,7 +56,6 @@
     "@mdn/browser-compat-data": "^8.0.4",
     "@types/node": "^25.6.2",
     "@typescript-eslint/parser": "^8.37.0",
-    "@typescript/native-preview": "7.0.0-dev.20260509.2",
     "bumpp": "^11.1.0",
     "eslint": "^10.6.0",
     "eslint-plugin-eslint-plugin": "^7.4.0",

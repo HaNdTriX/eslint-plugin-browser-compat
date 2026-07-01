@@ -223,9 +223,6 @@ importers:
       '@typescript-eslint/parser':
         specifier: ^8.37.0
         version: 8.62.1(eslint@10.6.0(jiti@2.7.0))(typescript@6.0.3)
-      '@typescript/native-preview':
-        specifier: 7.0.0-dev.20260509.2
-        version: 7.0.0-dev.20260509.2
       bumpp:
         specifier: ^11.1.0
         version: 11.1.0
@@ -1629,6 +1626,7 @@ snapshots:
       '@typescript/native-preview-linux-x64': 7.0.0-dev.20260509.2
       '@typescript/native-preview-win32-arm64': 7.0.0-dev.20260509.2
       '@typescript/native-preview-win32-x64': 7.0.0-dev.20260509.2
+    optional: true
 
   '@vitest/expect@4.1.9':
     dependencies:
