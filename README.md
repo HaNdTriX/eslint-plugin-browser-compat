@@ -1,5 +1,8 @@
 # eslint-plugin-browser-compat
 
+[![npm version](https://img.shields.io/npm/v/eslint-plugin-browser-compat)](https://www.npmjs.com/package/eslint-plugin-browser-compat)
+[![CI](https://github.com/handtrix/eslint-plugin-browser-compat/actions/workflows/ci.yml/badge.svg)](https://github.com/handtrix/eslint-plugin-browser-compat/actions/workflows/ci.yml)
+
 Lint browser compatibility of your JavaScript and TypeScript using @mdn/browser-compat-data.
 
 The goal is a drop-in replacement for eslint-plugin-compat, with these differences:
