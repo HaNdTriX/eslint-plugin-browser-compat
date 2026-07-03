@@ -83,9 +83,9 @@ describe("compat/compat", () => {
         (m) => m.ruleId === "compat/compat" && m.message.includes("AmbientLightSensor"),
       ),
     ).toBe(true);
+  });
 
   it("reports features only available in preview builds", () => {
-    const messages = lint("navigator.preferences", {
       browsers: ["chrome 120"],
     });
 
