@@ -12,6 +12,9 @@ import type {
 type CompatStatement = {
   version_added?: boolean | string | null;
   version_removed?: boolean | string | null;
+  flags?: unknown[];
+  prefix?: string;
+  alternative_name?: string;
 };
 
 type CompatNode = {
@@ -188,6 +191,14 @@ function statementSupportsVersion(
   statement: CompatStatement,
   targetVersion: string,
 ): boolean {
+  if (
+    statement.prefix ||
+    statement.alternative_name ||
+    (Array.isArray(statement.flags) && statement.flags.length > 0)
+  ) {
+    return false;
+  }
+
   const added = statement.version_added;
   if (added === false || added == null) {
     return false;
@@ -204,6 +215,10 @@ function statementSupportsVersion(
   }
 
   if (typeof added === "string") {
+    if (parseVersionParts(added) === null) {
+      return false;
+    }
+
     if (compareVersions(targetVersion, added) < 0) {
       return false;
     }
