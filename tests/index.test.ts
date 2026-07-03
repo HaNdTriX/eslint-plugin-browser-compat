@@ -72,6 +72,23 @@ describe("compat/compat", () => {
     expect(messages).toHaveLength(0);
   });
 
+  it("reports features only available behind a flag", () => {
+    const messages = lint("new AmbientLightSensor()", {
+      browsers: ["chrome 120"],
+    });
+
+    expect(messages.length).toBeGreaterThan(0);
+    expect(messages[0]?.message).toContain("AmbientLightSensor");
+  });
+
+  it("reports features only available in preview builds", () => {
+    const messages = lint("navigator.preferences", {
+      browsers: ["chrome 120"],
+    });
+
+    expect(messages.length).toBeGreaterThan(0);
+  });
+
   it("exposes flat recommended config", () => {
     expect(plugin.configs.recommended).toBeTruthy();
     expect(plugin.configs.recommended.rules?.["compat/compat"]).toBe("error");
