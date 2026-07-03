@@ -87,6 +87,7 @@ describe("compat/compat", () => {
     });
 
     expect(messages.length).toBeGreaterThan(0);
+    expect(messages[0]?.message).toContain("preferences");
   });
 
   it("exposes flat recommended config", () => {
