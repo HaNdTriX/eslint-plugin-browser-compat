@@ -78,7 +78,13 @@ describe("compat/compat", () => {
     });
 
     expect(messages.length).toBeGreaterThan(0);
-    expect(messages[0]?.message).toContain("AmbientLightSensor");
+    expect(
+      messages.some(
+        (message) =>
+          message.ruleId === "compat/compat" &&
+          message.message.includes("AmbientLightSensor"),
+      ),
+    ).toBe(true);
   });
 
   it("reports features only available in preview builds", () => {
@@ -87,6 +93,13 @@ describe("compat/compat", () => {
     });
 
     expect(messages.length).toBeGreaterThan(0);
+    expect(
+      messages.some(
+        (message) =>
+          message.ruleId === "compat/compat" &&
+          message.message.includes("navigator.preferences"),
+      ),
+    ).toBe(true);
   });
 
   it("exposes flat recommended config", () => {
