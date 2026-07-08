@@ -86,10 +86,16 @@ describe("compat/compat", () => {
   });
 
   it("reports features only available in preview builds", () => {
+    const messages = lint("navigator.preferences", {
       browsers: ["chrome 120"],
     });
 
     expect(messages.length).toBeGreaterThan(0);
+    expect(
+      messages.some(
+        (m) => m.ruleId === "compat/compat" && m.message.includes("preferences"),
+      ),
+    ).toBe(true);
   });
 
   it("exposes flat recommended config", () => {
