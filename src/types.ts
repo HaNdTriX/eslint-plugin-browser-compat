@@ -1,7 +1,4 @@
-export interface BrowserslistOpts {
-  path?: string;
-  env?: string;
-}
+import type { Options } from "browserslist";
 
 export interface PluginSettings {
   browsers?: string[];
@@ -9,7 +6,7 @@ export interface PluginSettings {
   polyfills?: string[];
   lintAllEsApis?: boolean;
   ignoreConditionalChecks?: boolean;
-  browserslistOpts?: BrowserslistOpts;
+  browserslistOpts?: Options;
 }
 
 export interface BrowserTarget {

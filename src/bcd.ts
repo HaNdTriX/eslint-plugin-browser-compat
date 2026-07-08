@@ -3,7 +3,6 @@ import bcd from "@mdn/browser-compat-data";
 
 import type {
   BrowserTarget,
-  BrowserslistOpts,
   CompatLookupResult,
   PluginSettings,
   UnsupportedBrowser,
@@ -99,11 +98,8 @@ export function resolveBrowserTargets(
     settings.targets.length > 0 ? settings.targets : settings.browsers;
   const resolved =
     configuredTargets.length > 0
-      ? browserslist(
-          configuredTargets,
-          settings.browserslistOpts as BrowserslistOpts,
-        )
-      : browserslist(undefined, settings.browserslistOpts as BrowserslistOpts);
+      ? browserslist(configuredTargets, settings.browserslistOpts)
+      : browserslist(undefined, settings.browserslistOpts);
 
   return resolved
     .map((entry) => {
