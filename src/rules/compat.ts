@@ -1,5 +1,4 @@
-import type { Rule } from "eslint";
-
+import type { Rule, Scope } from "eslint";
 import {
   isPolyfilled,
   lookupCompatibility,
@@ -8,10 +7,68 @@ import {
 } from "../bcd";
 import type { PluginSettings } from "../types";
 
-type AstNode = Rule.Node & {
-  parent?: AstNode | null;
-  [key: string]: unknown;
-};
+type AstNode = Rule.Node;
+type IdentifierNode = Extract<AstNode, { type: "Identifier" }>;
+type MemberExpressionNode = Extract<AstNode, { type: "MemberExpression" }>;
+type CallExpressionNode = Extract<AstNode, { type: "CallExpression" }>;
+type NewExpressionNode = Extract<AstNode, { type: "NewExpression" }>;
+
+function isAstNode(value: unknown): value is AstNode {
+  return value !== null && typeof value === "object" && "type" in value;
+}
+
+function isIdentifierNode(value: unknown): value is IdentifierNode {
+  return isAstNode(value) && value.type === "Identifier";
+}
+
+function isMemberExpressionNode(value: unknown): value is MemberExpressionNode {
+  return isAstNode(value) && value.type === "MemberExpression";
+}
+
+function getNodeStringProperty(node: object, key: string): string | undefined {
+  const value = Reflect.get(node, key);
+  return typeof value === "string" ? value : undefined;
+}
+
+function getStringArray(value: unknown): string[] | undefined {
+  return Array.isArray(value)
+    ? value.filter((entry) => typeof entry === "string")
+    : undefined;
+}
+
+function getBoolean(value: unknown): boolean | undefined {
+  return typeof value === "boolean" ? value : undefined;
+}
+
+function readPluginSettings(value: unknown): PluginSettings | undefined {
+  if (!value || typeof value !== "object") {
+    return undefined;
+  }
+
+  return {
+    browsers: getStringArray(Reflect.get(value, "browsers")),
+    targets: getStringArray(Reflect.get(value, "targets")),
+    polyfills: getStringArray(Reflect.get(value, "polyfills")),
+    lintAllEsApis: getBoolean(Reflect.get(value, "lintAllEsApis")),
+    ignoreConditionalChecks: getBoolean(
+      Reflect.get(value, "ignoreConditionalChecks"),
+    ),
+    browserslistOpts:
+      Reflect.get(value, "browserslistOpts") &&
+      typeof Reflect.get(value, "browserslistOpts") === "object"
+        ? Reflect.get(value, "browserslistOpts")
+        : undefined,
+  };
+}
+
+function getPluginSettingsFromContext(
+  contextSettings: Rule.RuleContext["settings"],
+): PluginSettings | undefined {
+  return (
+    readPluginSettings(Reflect.get(contextSettings, "compat")) ??
+    readPluginSettings(contextSettings)
+  );
+}
 
 function getDirectChildKey(parent: AstNode, child: AstNode): string | null {
   for (const [key, value] of Object.entries(parent)) {
@@ -41,11 +98,9 @@ function isTypeOnlyImport(node: AstNode): boolean {
     (parent.type === "ImportSpecifier" ||
       parent.type === "ImportDefaultSpecifier" ||
       parent.type === "ImportNamespaceSpecifier") &&
-    ((parent.importKind as string | undefined) === "type" ||
-      (parent.parent &&
-        (parent.parent as AstNode).type === "ImportDeclaration" &&
-        ((parent.parent as AstNode).importKind as string | undefined) ===
-          "type"))
+    (getNodeStringProperty(parent, "importKind") === "type" ||
+      (parent.parent?.type === "ImportDeclaration" &&
+        getNodeStringProperty(parent.parent, "importKind") === "type"))
   ) {
     return true;
   }
@@ -58,7 +113,7 @@ function isInTypePosition(node: AstNode): boolean {
   let current = node.parent;
 
   while (current) {
-    const currentType = current.type as string;
+    const currentType = current.type;
     const key = getDirectChildKey(current, child);
 
     if (!key) {
@@ -68,13 +123,7 @@ function isInTypePosition(node: AstNode): boolean {
     }
 
     if (currentType.startsWith("TS")) {
-      const isRuntimeBranch =
-        ((currentType === "TSAsExpression" ||
-          currentType === "TSSatisfiesExpression") &&
-          key === "expression") ||
-        (currentType === "TSNonNullExpression" && key === "expression");
-
-      if (!isRuntimeBranch) {
+      if (key !== "expression") {
         return true;
       }
     }
@@ -167,19 +216,21 @@ function memberPath(node: AstNode): string | null {
   const parts: string[] = [];
   let current: AstNode = node;
 
-  while (current.type === "MemberExpression") {
-    if (
-      current.computed ||
-      (current.property as AstNode).type !== "Identifier"
-    ) {
+  while (isMemberExpressionNode(current)) {
+    if (current.computed || current.property.type !== "Identifier") {
       return null;
     }
 
-    parts.unshift((current.property as { name: string }).name);
-    current = current.object as AstNode;
+    parts.unshift(current.property.name);
+
+    if (!isAstNode(current.object)) {
+      return null;
+    }
+
+    current = current.object;
   }
 
-  if (current.type === "Identifier") {
+  if (isIdentifierNode(current)) {
     parts.unshift(current.name);
     return parts.join(".");
   }
@@ -190,11 +241,15 @@ function memberPath(node: AstNode): string | null {
 function memberRootIdentifier(node: AstNode): AstNode | null {
   let current: AstNode = node;
 
-  while (current.type === "MemberExpression") {
-    current = current.object as AstNode;
+  while (isMemberExpressionNode(current)) {
+    if (!isAstNode(current.object)) {
+      return null;
+    }
+
+    current = current.object;
   }
 
-  if (current.type === "Identifier") {
+  if (isIdentifierNode(current)) {
     return current;
   }
 
@@ -209,13 +264,11 @@ function isLocallyDefinedIdentifier(
   context: Rule.RuleContext,
   node: AstNode,
 ): boolean {
-  if (node.type !== "Identifier") {
+  if (!isIdentifierNode(node)) {
     return false;
   }
 
-  let scope = context.sourceCode.getScope(node) as ReturnType<
-    Rule.RuleContext["sourceCode"]["getScope"]
-  > | null;
+  let scope: Scope.Scope | null = context.sourceCode.getScope(node);
   while (scope) {
     const variable = scope.set.get(node.name);
     if (variable) {
@@ -252,7 +305,7 @@ const compatRule: Rule.RuleModule = {
 
   create(context) {
     const settings = resolveSettings(
-      context.settings as PluginSettings | undefined,
+      getPluginSettingsFromContext(context.settings),
     );
     const targets = resolveBrowserTargets(settings);
 
@@ -294,9 +347,38 @@ const compatRule: Rule.RuleModule = {
       });
     };
 
+    const reportIdentifierCallee = (
+      host: CallExpressionNode | NewExpressionNode,
+      callee: IdentifierNode,
+      displayFeature?: string,
+    ): void => {
+      if (isLocallyDefinedIdentifier(context, callee)) {
+        return;
+      }
+
+      reportUnsupported(host, callee.name, displayFeature);
+    };
+
+    const reportMemberCallee = (
+      host: CallExpressionNode | NewExpressionNode,
+      callee: MemberExpressionNode,
+      displayFeature?: string,
+    ): void => {
+      if (hasLocalMemberRoot(context, callee)) {
+        return;
+      }
+
+      const feature = memberPath(callee);
+      if (!feature) {
+        return;
+      }
+
+      reportUnsupported(host, feature, displayFeature);
+    };
+
     return {
       Identifier(node) {
-        const current = node as AstNode;
+        const current = node;
 
         if (isTypeOnlyImport(current) || isInTypePosition(current)) {
           return;
@@ -324,68 +406,42 @@ const compatRule: Rule.RuleModule = {
           return;
         }
 
-        reportUnsupported(current, current.name as string);
+        reportUnsupported(current, current.name);
       },
 
       CallExpression(node) {
-        const current = node as AstNode;
-
-        if ((current.callee as AstNode).type === "Identifier") {
-          const callee = current.callee as AstNode;
-          if (isLocallyDefinedIdentifier(context, callee)) {
-            return;
-          }
-
-          const name = (callee as { name: string }).name;
-          reportUnsupported(current, name, `${name}()`);
+        if (isIdentifierNode(node.callee)) {
+          reportIdentifierCallee(node, node.callee, `${node.callee.name}()`);
           return;
         }
 
-        if ((current.callee as AstNode).type === "MemberExpression") {
-          const callee = current.callee as AstNode;
-          if (hasLocalMemberRoot(context, callee)) {
+        if (isMemberExpressionNode(node.callee)) {
+          const feature = memberPath(node.callee);
+          if (!feature) {
             return;
           }
 
-          const feature = memberPath(callee);
-          if (feature) {
-            reportUnsupported(
-              current,
-              feature,
-              `${normalizeFeatureKey(feature)}()`,
-            );
-          }
+          reportMemberCallee(
+            node,
+            node.callee,
+            `${normalizeFeatureKey(feature)}()`,
+          );
         }
       },
 
       NewExpression(node) {
-        const current = node as AstNode;
-
-        if ((current.callee as AstNode).type === "Identifier") {
-          const callee = current.callee as AstNode;
-          if (isLocallyDefinedIdentifier(context, callee)) {
-            return;
-          }
-
-          reportUnsupported(current, (callee as { name: string }).name);
+        if (isIdentifierNode(node.callee)) {
+          reportIdentifierCallee(node, node.callee);
           return;
         }
 
-        if ((current.callee as AstNode).type === "MemberExpression") {
-          const callee = current.callee as AstNode;
-          if (hasLocalMemberRoot(context, callee)) {
-            return;
-          }
-
-          const feature = memberPath(callee);
-          if (feature) {
-            reportUnsupported(current, feature);
-          }
+        if (isMemberExpressionNode(node.callee)) {
+          reportMemberCallee(node, node.callee);
         }
       },
 
       MemberExpression(node) {
-        const current = node as AstNode;
+        const current = node;
 
         if (
           current.parent?.type === "MemberExpression" &&
