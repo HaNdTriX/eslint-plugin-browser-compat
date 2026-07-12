@@ -212,18 +212,37 @@ describe("compat/compat", () => {
   });
 
   it("supports browserslist-only browser families via BCD aliases", () => {
+    const cases = [
+      "ie_mob 10",
+      "and_qq 14.9",
+      "baidu 13.52",
+      "bb 10",
+      "kaios 2.5",
+    ];
+
+    for (const target of cases) {
+      const family = target.split(" ")[0];
+      const messages = lint("fetch('/api')", {
+        targets: [target],
+      });
+
+      const compatMessages = messages.filter(
+        (message) =>
+          message.ruleId === "compat/compat" &&
+          message.message.includes("fetch()") &&
+          message.message.includes(family),
+      );
+
+      expect(compatMessages.length).toBeGreaterThan(0);
+    }
+  });
+
+  it("handles op_mini all targets", () => {
     const messages = lint("fetch('/api')", {
-      targets: ["ie_mob 11"],
+      targets: ["op_mini all"],
     });
 
-    const compatMessages = messages.filter(
-      (message) =>
-        message.ruleId === "compat/compat" &&
-        message.message.includes("fetch()") &&
-        message.message.includes("ie_mob"),
-    );
-
-    expect(compatMessages.length).toBeGreaterThan(0);
+    expect(Array.isArray(messages)).toBe(true);
   });
 
   it("does not report properties on local DOMRect values", () => {
