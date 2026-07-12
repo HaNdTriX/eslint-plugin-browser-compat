@@ -4,7 +4,7 @@
 [![CI](https://github.com/handtrix/eslint-plugin-browser-compat/actions/workflows/ci.yml/badge.svg)](https://github.com/handtrix/eslint-plugin-browser-compat/actions/workflows/ci.yml)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
-An ESLint plugin that reports browser API usage incompatible with your configured [browserslist](https://browsersl.ist/) targets, powered by [@mdn/browser-compat-data](https://github.com/mdn/browser-compat-data).
+An ESLint plugin that reports API usage incompatible with your configured [browserslist](https://browsersl.ist/) targets (including non-browser targets like Node.js), powered by [@mdn/browser-compat-data](https://github.com/mdn/browser-compat-data).
 
 Designed as a drop-in replacement for [eslint-plugin-compat](https://github.com/amilajack/eslint-plugin-compat) with the following differences:
 
@@ -58,6 +58,10 @@ With a `browserslist` field in your `package.json` (or a `.browserslistrc` file)
 ## Configure target browsers
 
 Targets are resolved via browserslist. The plugin reads from the standard browserslist config locations (`package.json`, `.browserslistrc`, etc.) automatically.
+
+This also supports runtime targets emitted by browserslist, such as `node`.
+
+When a browserslist family has no exact MDN BCD browser key (for example `ie_mob` or `op_mini`), the plugin maps it to the closest compatible BCD runtime so compatibility checks still run.
 
 You can also set explicit targets in your ESLint config using the `browsers` or `targets` setting:
 

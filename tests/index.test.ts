@@ -80,7 +80,9 @@ describe("compat/compat", () => {
     expect(messages.length).toBeGreaterThan(0);
     expect(
       messages.some(
-        (m) => m.ruleId === "compat/compat" && m.message.includes("AmbientLightSensor"),
+        (m) =>
+          m.ruleId === "compat/compat" &&
+          m.message.includes("AmbientLightSensor"),
       ),
     ).toBe(true);
   });
@@ -93,7 +95,8 @@ describe("compat/compat", () => {
     expect(messages.length).toBeGreaterThan(0);
     expect(
       messages.some(
-        (m) => m.ruleId === "compat/compat" && m.message.includes("preferences"),
+        (m) =>
+          m.ruleId === "compat/compat" && m.message.includes("preferences"),
       ),
     ).toBe(true);
   });
@@ -174,6 +177,50 @@ describe("compat/compat", () => {
       (message) =>
         message.ruleId === "compat/compat" &&
         message.message.includes("navigation.entries()"),
+    );
+
+    expect(compatMessages.length).toBeGreaterThan(0);
+  });
+
+  it("supports Node.js targets from browserslist", () => {
+    const messages = lint("fetch('/api')", {
+      targets: ["node 16"],
+    });
+
+    const compatMessages = messages.filter(
+      (message) =>
+        message.ruleId === "compat/compat" &&
+        message.message.includes("fetch()") &&
+        message.message.includes("node"),
+    );
+
+    expect(compatMessages.length).toBeGreaterThan(0);
+  });
+
+  it("does not report supported Node.js targets", () => {
+    const messages = lint("fetch('/api')", {
+      targets: ["node 20"],
+    });
+
+    const compatMessages = messages.filter(
+      (message) =>
+        message.ruleId === "compat/compat" &&
+        message.message.includes("fetch()"),
+    );
+
+    expect(compatMessages).toHaveLength(0);
+  });
+
+  it("supports browserslist-only browser families via BCD aliases", () => {
+    const messages = lint("fetch('/api')", {
+      targets: ["ie_mob 11"],
+    });
+
+    const compatMessages = messages.filter(
+      (message) =>
+        message.ruleId === "compat/compat" &&
+        message.message.includes("fetch()") &&
+        message.message.includes("ie_mob"),
     );
 
     expect(compatMessages.length).toBeGreaterThan(0);

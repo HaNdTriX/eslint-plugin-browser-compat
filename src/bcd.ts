@@ -23,20 +23,23 @@ type CompatNode = {
   [key: string]: unknown;
 };
 
-const BROWSER_NAME_MAP: Record<string, string> = {
-  chrome: "chrome",
-  firefox: "firefox",
-  safari: "safari",
-  edge: "edge",
-  ie: "ie",
+const TARGET_NAME_MAP: Record<string, string> = {
   ios_saf: "safari_ios",
   and_chr: "chrome_android",
   and_ff: "firefox_android",
   samsung: "samsunginternet_android",
-  opera: "opera",
   op_mob: "opera_android",
   android: "webview_android",
   and_uc: "webview_android",
+  node: "nodejs",
+  // Browserslist families without a direct BCD browser key are mapped to the
+  // closest engine/runtime so they are still evaluated instead of ignored.
+  and_qq: "chrome_android",
+  baidu: "chrome_android",
+  bb: "webview_android",
+  ie_mob: "ie",
+  kaios: "firefox",
+  op_mini: "opera_android",
 };
 
 const CACHE = new Map<string, CompatLookupResult>();
@@ -238,12 +241,8 @@ function supportsTarget(node: CompatNode, target: BrowserTarget): boolean {
     return true;
   }
 
-  const bcdBrowser = BROWSER_NAME_MAP[target.browser];
-  if (!bcdBrowser) {
-    return true;
-  }
-
-  const statement = supportData[bcdBrowser];
+  const statement =
+    supportData[target.browser] ?? supportData[TARGET_NAME_MAP[target.browser]];
   if (!statement) {
     return true;
   }
